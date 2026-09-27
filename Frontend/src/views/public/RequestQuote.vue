@@ -29,9 +29,9 @@
           </div>
           <div>
             <label class="label">Event Type</label>
-            <select v-model="form.event_type_id" class="input">
+            <select v-model="form.event_type_name" class="input">
               <option value="">Select a type</option>
-              <option v-for="t in eventTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+              <option v-for="type in eventTypes" :key="type.name" :value="type.name">{{ type.name }}</option>
             </select>
           </div>
           <div>
@@ -92,7 +92,8 @@ import api from '@/api'
 import PublicNav from '@/components/PublicNav.vue'
 import PublicFooter from '@/components/PublicFooter.vue'
 
-const eventTypes = ref([])
+const defaultEventTypes = ['Wedding', 'Corporate Event', 'Birthday Party', 'Conference', 'Anniversary']
+const eventTypes = ref(defaultEventTypes.map((name) => ({ name })))
 const services = ref([])
 const submitting = ref(false)
 const submitted = ref(false)
@@ -108,20 +109,26 @@ const minEventDate = computed(() => {
 })
 
 const form = ref({
-  name: '', email: '', phone: '', event_type_id: '', event_date: '', guest_count: '',
+  name: '', email: '', phone: '', event_type_name: '', event_date: '', guest_count: '',
   venue: '', budget: '', message: '', service_ids: [],
 })
 
 onMounted(async () => {
-  try {
-    const [types, svcs] = await Promise.all([
-      api.get('/public/event-types'),
-      api.get('/public/services'),
-    ])
-    eventTypes.value = types.data
-    services.value = svcs.data
-  } catch {
-    optionsError.value = 'Event options could not be loaded. You can still submit your enquiry without selecting them.'
+  const [typesResult, servicesResult] = await Promise.allSettled([
+    api.get('/public/event-types'),
+    api.get('/public/services'),
+  ])
+
+  if (typesResult.status === 'fulfilled' && Array.isArray(typesResult.value.data) && typesResult.value.data.length) {
+    eventTypes.value = typesResult.value.data
+  } else if (typesResult.status === 'rejected' || !Array.isArray(typesResult.value?.data)) {
+    optionsError.value = 'Showing standard event types. Live service options could not be loaded.'
+  }
+
+  if (servicesResult.status === 'fulfilled' && Array.isArray(servicesResult.value.data)) {
+    services.value = servicesResult.value.data
+  } else {
+    optionsError.value = 'Showing standard event types. Live service options could not be loaded.'
   }
 })
 
@@ -131,11 +138,14 @@ async function submit() {
   fieldErrors.value = {}
   try {
     const { data } = await api.post('/public/request-quote', form.value)
+    if (!data.reference || !data.message) {
+      throw new Error('The live enquiry API is not configured. Set VITE_API_URL to your deployed Laravel API URL.')
+    }
     successMessage.value = data.message
     reference.value = data.reference
     submitted.value = true
   } catch (e) {
-    error.value = e.response?.data?.message || 'Unable to submit your enquiry. Please check the highlighted fields.'
+    error.value = e.response?.data?.message || e.message || 'Unable to submit your enquiry. Please check the highlighted fields.'
     fieldErrors.value = Object.fromEntries(
       Object.entries(e.response?.data?.errors || {}).map(([field, messages]) => [field, messages[0]])
     )

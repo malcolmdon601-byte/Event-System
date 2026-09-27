@@ -13,6 +13,18 @@ class PublicEnquiryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_public_event_types_are_available_before_database_is_seeded(): void
+    {
+        $response = $this->getJson('/api/public/event-types');
+
+        $response->assertOk()
+            ->assertJsonFragment(['name' => 'Wedding'])
+            ->assertJsonFragment(['name' => 'Corporate Event'])
+            ->assertJsonCount(5);
+
+        $this->assertDatabaseCount('event_types', 5);
+    }
+
     public function test_public_enquiry_creates_customer_event_and_selected_services(): void
     {
         $eventType = EventType::create(['name' => 'Wedding']);
@@ -64,5 +76,22 @@ class PublicEnquiryTest extends TestCase
 
         $this->assertDatabaseCount('customers', 0);
         $this->assertDatabaseCount('events', 0);
+    }
+
+    public function test_public_enquiry_creates_a_missing_event_type_by_name(): void
+    {
+        $response = $this->postJson('/api/public/request-quote', [
+            'name' => 'Jordan Guest',
+            'email' => 'jordan@example.test',
+            'event_type_name' => 'Graduation Celebration',
+            'event_date' => now()->addMonth()->toDateString(),
+        ]);
+
+        $response->assertCreated();
+        $this->assertDatabaseHas('event_types', ['name' => 'Graduation Celebration']);
+        $this->assertDatabaseHas('events', [
+            'name' => 'Graduation Celebration for Jordan Guest',
+            'status' => 'enquiry',
+        ]);
     }
 }

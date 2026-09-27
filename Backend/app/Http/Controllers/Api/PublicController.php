@@ -20,6 +20,10 @@ class PublicController extends Controller
 
     public function eventTypes()
     {
+        foreach (['Wedding', 'Corporate Event', 'Birthday Party', 'Conference', 'Anniversary'] as $name) {
+            EventType::firstOrCreate(['name' => $name]);
+        }
+
         return response()->json(EventType::orderBy('name')->get());
     }
 
@@ -34,6 +38,7 @@ class PublicController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'event_type_id' => ['nullable', 'exists:event_types,id'],
+            'event_type_name' => ['nullable', 'string', 'max:255'],
             'event_date' => ['required', 'date'],
             'guest_count' => ['nullable', 'integer', 'min:1'],
             'venue' => ['nullable', 'string', 'max:255'],
@@ -55,7 +60,9 @@ class PublicController extends Controller
                 ['name' => $data['name'], 'phone' => $data['phone'] ?? null]
             );
 
-            $eventType = isset($data['event_type_id']) ? EventType::find($data['event_type_id']) : null;
+            $eventType = ! empty($data['event_type_name'])
+                ? EventType::firstOrCreate(['name' => trim($data['event_type_name'])])
+                : (isset($data['event_type_id']) ? EventType::find($data['event_type_id']) : null);
             $event = Event::create([
                 'customer_id' => $customer->id,
                 'event_type_id' => $eventType?->id,
