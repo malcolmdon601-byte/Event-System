@@ -1,0 +1,23 @@
+# Local environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.testing.example
+
+# Dependencies and generated assets
+**/node_modules/
+**/vendor/
+**/dist/
+**/build/
+**/public/hot
+**/public/storage
+**/storage/*.key
+
+# Logs, caches, and local tooling
+**/*.log
+**/.phpunit.result.cache
+**/.phpunit.cache/
+**/.DS_Store
+**/Thumbs.db
+/.idea/
+/.vscode/
