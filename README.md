@@ -151,24 +151,23 @@ The Vue/Vite frontend can be deployed to Vercel as a static site. The Laravel AP
 is a separate PHP application and is **not** deployed by this Vercel frontend
 configuration; deploy it to a PHP-capable host with a persistent database first.
 
-1. Import this GitHub repository in Vercel.
-2. Set **Root Directory** to `Frontend` (and leave “Include files outside the root
-  directory” disabled).
-3. Use `npm run build` as the build command and `dist` as the output directory.
-  The checked-in `Frontend/vercel.json` also configures these values and rewrites
-  Vue Router paths to `index.html`, so direct links and page refreshes work.
-4. Add the Vercel environment variable `VITE_API_URL` with the deployed Laravel API
+1. Import this GitHub repository in Vercel and leave **Root Directory** at the
+  repository root. The root `vercel.json` installs/builds the nested frontend and
+  serves `Frontend/dist`. Alternatively, set **Root Directory** to `Frontend` and
+  use the nested `Frontend/vercel.json` settings (`npm run build`, output `dist`).
+2. The Vercel config rewrites Vue Router paths to `index.html`, so direct links and
+  page refreshes work.
+3. Add the Vercel environment variable `VITE_API_URL` with the deployed Laravel API
   base URL, including `/api` (for example, `https://api.example.com/api`). Then
   redeploy; Vite embeds this value during the build.
-5. On the Laravel host, set `FRONTEND_URL` to the deployed website origin only
+4. On the Laravel host, set `FRONTEND_URL` to the deployed website origin only
   (for example, `https://event-system.example.com`) so the API permits browser
   requests from that domain. Ensure the backend's production database is migrated
   and seeded as appropriate for the deployment.
 
-If Vercel is configured with the repository root instead of `Frontend`, it will
-not find the Vue package manifest. If `VITE_API_URL` is missing, the frontend falls
-back to `/api`; the local development URL `http://localhost:8000/api` is not a
-usable API address for visitors to the deployed site.
+If `VITE_API_URL` is missing, the frontend falls back to `/api`; the local
+development URL `http://localhost:8000/api` is not a usable API address for
+visitors to the deployed site.
 
 ## 7. Demo login credentials
 
