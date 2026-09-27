@@ -145,11 +145,43 @@ Create a `.env` in `Frontend` if your API isn't at the default:
 VITE_API_URL=http://localhost:8000/api
 ```
 
+### Deploying the Laravel API to Render
+
+The repository includes a Render blueprint at `render.yaml` and a Docker runtime
+in `Backend`. The blueprint creates the Laravel web service; provide it with a
+PostgreSQL connection string from a PostgreSQL host such as Neon. Render's free
+web service can sleep when idle, so the first API request after idle may take a
+little longer.
+
+1. Create a PostgreSQL database and copy its **pooled/externally reachable** URL.
+2. In Render, choose **New → Blueprint**, connect this GitHub repository, and
+  approve the `eventflow-api` service. When prompted, enter:
+  - `DB_URL`: the PostgreSQL connection URL (include `sslmode=require` if the
+    database provider requires TLS).
+   - `APP_KEY`: generate a valid Laravel key with `php artisan key:generate --show`
+     in the local `Backend` folder and paste the output into Render. Keep this
+     key private and stable between deployments.
+  - `APP_URL`: the public Render service origin, such as
+    `https://eventflow-api.onrender.com`.
+  - `FRONTEND_URL`: the Vercel site's stable production origin, with no trailing
+    slash. Use its production domain, not a one-off deployment URL.
+3. Wait for the Render service health check at `/up` to pass. The container runs
+  `php artisan migrate --force` on startup.
+4. Before connecting the production frontend, run `php artisan db:seed --force`
+  **once** from the Render service shell to add the demo accounts and sample
+  catalogue. Do not repeat this seeder against an already seeded database.
+5. Copy the public Render service URL. In Vercel's project settings, set
+  `VITE_API_URL` to `<Render service URL>/api` for Production, then redeploy.
+
+The demo seeder uses the publicly documented demo password `password`; this is
+for demonstration only. Change/remove those accounts before using real customer
+data. Keep `APP_DEBUG=false` and never put `DB_URL` or `APP_KEY` in Vercel or in
+source control.
+
 ### Deploying the frontend to Vercel
 
-The Vue/Vite frontend can be deployed to Vercel as a static site. The Laravel API
-is a separate PHP application and is **not** deployed by this Vercel frontend
-configuration; deploy it to a PHP-capable host with a persistent database first.
+The Vue/Vite frontend can be deployed to Vercel as a static site. It uses the
+separately deployed Laravel API configured above.
 
 1. Import this GitHub repository in Vercel and leave **Root Directory** at the
   repository root. The root `vercel.json` installs/builds the nested frontend and
